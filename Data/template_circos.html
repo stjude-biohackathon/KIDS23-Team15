@@ -1,0 +1,136 @@
+<html>
+<head>  
+        <meta charset="utf-8">  
+        <title>Chord</title>  
+  </head> 
+
+<style>
+.download {
+	width: 160px; 
+	height: 25px; 
+	border-width: 0px; 
+	border-radius: 3px; 
+	background: #1E90FF; 
+	cursor: pointer; 
+	outline: none; 
+	color: white; 
+	font-size: 17px;
+}
+
+.download:hover { 
+	background: #5599FF;
+}
+</style>
+    <body>  
+		<script src="../Js/jquery.js"></script>
+		<script src="../Js/d3.js"></script>
+		<script src="../Js/NGCircos.js"></script>
+		<script src="CircosData.js"></script>
+		<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+		
+<!-- 	Download button for png -->
+		<script type="text/javascript">
+			$(document).ready(function() {
+				new QWebChannel(qt.webChannelTransport, function(channel) {
+						var my_object = channel.objects.connection;$("#download").click(function(){
+						text=document.getElementsByTagName("svg")[0].parentNode.innerHTML;
+						my_object.download(text);
+					});
+				});
+			});
+		</script>
+
+		<input id="download" type="button" class="download" value="Download" style="display:block;"/>
+		
+		<div id="NGCircos"></div>
+		<script>
+			
+		NGCircos1 = new NGCircos(CHORD1,LEGEND1,NGCircosGenome,{
+			target:"NGCircos",
+			svgWidth:900,
+			svgHeight:900,
+			svgClassName:"chord",
+			chrPad:0.06,
+			innerRadius:345,
+			outerRadius:350,
+			zoom:true,
+			compareEvent:false,
+			combinationEvent:false,
+			genomeFillColor:["#1E77B4","#2AA02B","#FF7F0B","#FFBB78","#2AA02B","#98DF8A","#D62628","#FF9896","#9467BD","#C5B0D5","#8C564C","#C49C94","#E377C2","#F7B6D2","#7F7F7F","#C7C7C7","#BCBC22","#DADB8D","#19BDCF","#9ED9E5"],
+			ticks:{
+			display:false,
+			len:5,
+			color:"#000",
+			textSize:8,
+			textColor:"#000",
+			scale:50,
+			realLength:true,
+			},
+			genomeLabel:{
+			display:false,
+			textSize:15,
+			textColor:"#000",
+			dx:0.028,
+			dy:"-0.55em",
+			},
+			genomeBorder:{
+			display:false,
+			borderColor:"white",
+			borderSize:0.5,
+			},
+			TEXTModuleDragEvent:false,
+			CHORDMouseEvent : true,
+			CHORDMouseFillColorExcluded:"white",
+			CHORDMouseClickDisplay : false,
+			CHORDMouseClickOpacity : 1.0,
+			CHORDMouseClickStrokeColor : "green",
+			CHORDMouseClickStrokeWidth : 4,
+			CHORDMouseDownDisplay : false,
+			CHORDMouseDownOpacity : 1.0,
+			CHORDMouseDownStrokeColor : "#F26223",
+			CHORDMouseDownStrokeWidth : 4,
+			CHORDMouseEnterDisplay : false,
+			CHORDMouseEnterOpacity : 1.0,
+			CHORDMouseEnterStrokeColor : "#F26223",
+			CHORDMouseEnterStrokeWidth : 4,
+			CHORDMouseLeaveDisplay : false,
+			CHORDMouseLeaveOpacity : 1.0,
+			CHORDMouseLeaveStrokeColor : "#F26223",
+			CHORDMouseLeaveStrokeWidth : 4,
+			CHORDMouseMoveDisplay : false,
+			CHORDMouseMoveOpacity : 1.0,
+			CHORDMouseMoveStrokeColor : "#F26223",
+			CHORDMouseMoveStrokeWidth : 4,
+			CHORDMouseOutDisplay : true,
+			CHORDMouseOutAnimationTime : 500,
+			CHORDMouseOutOpacity : 0.67,
+			CHORDMouseOutStrokeColor : "none",
+			CHORDMouseOutStrokeWidth : 0,
+			CHORDMouseUpDisplay : false,
+			CHORDMouseUpOpacity : 1.0,
+			CHORDMouseUpStrokeColor : "#F26223",
+			CHORDMouseUpStrokeWidth : 4,
+			CHORDMouseOverDisplay : true,
+			CHORDMouseOverOpacity : 0.8,
+			CHORDMouseOverStrokeColor : "#F26223",
+			CHORDMouseOverStrokeWidth : 3,
+			CHORDMouseOverTooltipsHtml01 : "CHORD : ",
+			CHORDMouseOverTooltipsHtml02 : "",
+			CHORDMouseOverTooltipsPosition : "absolute",
+			CHORDMouseOverTooltipsBackgroundColor : "white",
+			CHORDMouseOverTooltipsBorderStyle : "solid",
+			CHORDMouseOverTooltipsBorderWidth : 0,
+			CHORDMouseOverTooltipsPadding : "3px",
+			CHORDMouseOverTooltipsBorderRadius : "3px",
+			CHORDMouseOverTooltipsOpacity : 0.8,
+			
+			});
+
+	
+		NGCircos1.draw_genome(NGCircos1.genomeLength);
+		NGCircos1.draw_genome(NGCircos1.genomeLength2);
+		
+
+		</script>
+    </body>  
+</html>  
