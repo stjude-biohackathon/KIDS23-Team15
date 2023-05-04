@@ -1584,6 +1584,7 @@ class scRNAseqDialog(QtWidgets.QDialog):
                                "QSpinBox{font-size:18px;}")
 
     def loadfile(self):
+        #WE DO NOT WANT ALL FILES, WE ONLY WANT TO READ IN AnnData FILES
         files, filetype = QtWidgets.QFileDialog.getOpenFileNames(self, "getOpenFileNames", "~/Documents",
                                                                  "All Files (*)")
         if len(files) == 0:
@@ -1604,7 +1605,22 @@ class scRNAseqDialog(QtWidgets.QDialog):
         print(self.scRNAobj.var)
 
         features = self.ui.lineEdit_2.text()
+
+        for char in features:
+            if char.islower():
+                Msg = 'Lowercase letter included in gene list provided!'
+                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                return
+
         features_list = features.split(',')
+
+        for gene in features_list:
+            #if !scRNAobj.var_names.str.match(feature):
+            if gene not in ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']:
+                Msg = 'You gene you are looking for is not contained within this dataset!'
+                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                return
+
         group = self.ui.comboBox_2.currentText()
 
         time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
