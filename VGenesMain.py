@@ -1593,7 +1593,8 @@ class scRNAseqDialog(QtWidgets.QDialog):
                 self.ui.lineEdit.setText(files[0])
                 self.scRNAobj = sc.datasets.pbmc68k_reduced()
                 sc.tl.leiden(self.scRNAobj, key_added='clusters', resolution=0.5)
-                print(self.scRNAobj.var)
+
+                self.ui.comboBox_2.addItems(self.scRNAobj.obs.columns)
 
     def drawFig(self):
         global scRNobj
@@ -1604,7 +1605,7 @@ class scRNAseqDialog(QtWidgets.QDialog):
 
         features = self.ui.lineEdit_2.text()
         features_list = features.split(',')
-        group = self.ui.lineEdit_3.text()
+        group = self.ui.comboBox_2.currentText()
 
         time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
         fig_path = os.path.join(temp_folder, time_stamp + '.png')
@@ -1621,21 +1622,21 @@ class scRNAseqDialog(QtWidgets.QDialog):
 
         with plt.rc_context({'figure.figsize': (4, 4)}):
             if self.ui.comboBox.currentText() == 'UMAP':
-                sc.pl.umap(self.scRNAobj, color=['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A', 'n_counts', 'bulk_labels'], s=50, frameon=False, vmax='p99', show=False)
+                sc.pl.umap(self.scRNAobj, color=features_list, s=50, frameon=False, vmax='p99', show=False)
             elif self.ui.comboBox.currentText() == 'Dot plot':
-                sc.pl.dotplot(self.scRNAobj, marker_genes_dict, 'clusters', dendrogram=True, show=False)
+                sc.pl.dotplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, show=False)
             elif self.ui.comboBox.currentText() == 'Stacked-violin Plot':
-                sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby='clusters', swap_axes=False, dendrogram=True, show=False)
+                sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby=group, swap_axes=False, dendrogram=True, show=False)
             elif self.ui.comboBox.currentText() == 'Matrix plot':
-                sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, 'clusters', dendrogram=True, cmap='Blues', standard_scale='var', colorbar_title='column scaled\nexpression', show=False)
+                sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, cmap='Blues', standard_scale='var', colorbar_title='column scaled\nexpression', show=False)
             elif self.ui.comboBox.currentText() == 'Heatmap':
-                sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby='clusters', cmap='viridis', dendrogram=True, show=False)
+                sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby=group, cmap='viridis', dendrogram=True, show=False)
             elif self.ui.comboBox.currentText() == 'Correlation':
-                sc.pl.correlation_matrix(self.scRNAobj, 'bulk_labels', show=False)
+                sc.pl.correlation_matrix(self.scRNAobj, group, show=False)
             elif self.ui.comboBox.currentText() == 'Tracks plot':
-                sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby='clusters', dendrogram=True, show=False)
+                sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby=group, dendrogram=True, show=False)
             elif self.ui.comboBox.currentText() == 'Violin Plot':
-                sc.pl.violin(self.scRNAobj, marker_genes_list, groupby='clusters', show=False)
+                sc.pl.violin(self.scRNAobj, features_list, groupby=group, show=False)
             else:
                 return
             plt.savefig(fig_path, bbox_inches="tight")

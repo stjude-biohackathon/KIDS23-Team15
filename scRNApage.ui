@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1747</width>
+    <width>640</width>
     <height>958</height>
    </rect>
   </property>
@@ -99,7 +99,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit_3"/>
+      <widget class="QComboBox" name="comboBox_2"/>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_2">
