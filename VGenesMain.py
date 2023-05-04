@@ -1551,16 +1551,18 @@ class scRNAseqDialog(QtWidgets.QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
 
-        #self.ui.figure = plt.figure()
-        #self.ui.F = FigureCanvas(self.ui.figure)
-        #self.ui.gridLayout_2.addWidget(self.ui.F, 0, 1)
-        #self.ui.F.setVisible(True)
-
         self.scRNobj = ''
-
+        self.figPath = ''
+        self.sign = False
+        self.features = []
+        
+        self.ui.pushButtonSave.setEnabled(False)
         self.ui.buttonBox.clicked.connect(self.accept)
         self.ui.pushButton.clicked.connect(self.loadfile)
-        self.ui.pushButton_2.clicked.connect(self.drawFig)
+        self.ui.pushButtonDraw.clicked.connect(self.drawFig)
+        self.ui.lineEditAutoComplete.textChanged.connect(self.addToList)
+        self.ui.listWidgetFeatureList.doubleClicked.connect(self.removeFeature)
+        self.ui.pushButtonClear.clicked.connect(self.clearList)
 
         if system() == 'Windows':
             # set style for windows
@@ -1582,46 +1584,68 @@ class scRNAseqDialog(QtWidgets.QDialog):
                                "QLineEdit{font-size:18px;}"
                                "QTreeWidget{font-size:18px;}"
                                "QSpinBox{font-size:18px;}")
-
+    
+    def clearList(self):
+        self.features.clear()
+        self.ui.listWidgetFeatureList.clear()
+    
     def loadfile(self):
         #WE DO NOT WANT ALL FILES, WE ONLY WANT TO READ IN AnnData FILES
         files, filetype = QtWidgets.QFileDialog.getOpenFileNames(self, "getOpenFileNames", "~/Documents",
-                                                                 "All Files (*)")
+                                                                 "AnnData（.h5ad）；All Files (*)")
         if len(files) == 0:
             return
         else:
             if os.path.exists(files[0]):
                 self.ui.lineEdit.setText(files[0])
-                self.scRNAobj = sc.datasets.pbmc68k_reduced()
-                sc.tl.leiden(self.scRNAobj, key_added='clusters', resolution=0.5)
+                # self.scRNAobj = sc.datasets.pbmc68k_reduced()
+                # sc.tl.leiden(self.scRNAobj, key_added='clusters', resolution=0.5)
+                self.scRNAobj = sc.read_h5ad(files[0])
+                self.ui.comboBoxCellGroup.clear()
+                self.ui.comboBoxCellGroup.addItems(self.scRNAobj.obs.columns)
+                self.initLineedit(self.ui.lineEditAutoComplete, self.scRNAobj.var.index)
 
-                self.ui.comboBox_2.addItems(self.scRNAobj.obs.columns)
+    def initLineedit(self, lineEdit, items_list):
+        # add auto complete
+        self.completer = QCompleter(items_list)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        # set match mode
+        self.completer.setFilterMode(Qt.MatchContains)
+        # set complete mode
+        self.completer.setCompletionMode(QCompleter.PopupCompletion)
+        # set QCompleter for lineEdit
+        lineEdit.setCompleter(self.completer)
+
+    def addToList(self):
+        if self.ui.lineEditAutoComplete.text() == '':
+            return
+        if self.sign == True:
+            self.sign = False
+            return
+        if self.ui.lineEditAutoComplete.text() in self.scRNAobj.var.index:
+            if self.ui.lineEditAutoComplete.text() not in self.features:
+                self.ui.listWidgetFeatureList.addItem(self.ui.lineEditAutoComplete.text())
+                self.features.append(self.ui.lineEditAutoComplete.text())
+                Msg = 'Feature ' + self.ui.lineEditAutoComplete.text() + ' added!'
+                self.ui.label_6.setText(Msg)
+                self.sign = True
+            else:
+                Msg = 'Feature ' + self.ui.lineEditAutoComplete.text() + ' exists!'
+                self.ui.label_6.setText(Msg)
+
+    def removeFeature(self):
+        feature = self.ui.listWidgetFeatureList.currentItem().text()
+        self.ui.listWidgetFeatureList.takeItem(self.ui.listWidgetFeatureList.currentRow())
+        self.features.remove(feature)
+        Msg = 'Feature ' + feature + ' removed!'
+        self.ui.label_6.setText(Msg)
 
     def drawFig(self):
-        global scRNobj
         sc.set_figure_params(dpi=300, color_map='viridis_r')
         sc.settings.verbosity = 1
 
-        print(self.scRNAobj.var)
-
-        features = self.ui.lineEdit_2.text()
-
-        for char in features:
-            if char.islower():
-                Msg = 'Lowercase letter included in gene list provided!'
-                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
-                return
-
-        features_list = features.split(',')
-
-        for gene in features_list:
-            #if !scRNAobj.var_names.str.match(feature):
-            if gene not in ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']:
-                Msg = 'You gene you are looking for is not contained within this dataset!'
-                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
-                return
-
-        group = self.ui.comboBox_2.currentText()
+        features_list = [str(self.ui.listWidgetFeatureList.item(i).text()) for i in range(self.ui.listWidgetFeatureList.count())]
+        group = self.ui.comboBoxCellGroup.currentText()
 
         time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
         fig_path = os.path.join(temp_folder, time_stamp + '.png')
@@ -1637,37 +1661,38 @@ class scRNAseqDialog(QtWidgets.QDialog):
         }
 
         with plt.rc_context({'figure.figsize': (4, 4)}):
-            if self.ui.comboBox.currentText() == 'UMAP':
+            if self.ui.comboBoxFigType.currentText() == 'UMAP':
                 sc.pl.umap(self.scRNAobj, color=features_list, s=50, frameon=False, vmax='p99', show=False)
-            elif self.ui.comboBox.currentText() == 'Dot plot':
+            elif self.ui.comboBoxFigType.currentText() == 'Dot plot':
                 sc.pl.dotplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, show=False)
-            elif self.ui.comboBox.currentText() == 'Stacked-violin Plot':
+            elif self.ui.comboBoxFigType.currentText() == 'Stacked-violin Plot':
                 sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby=group, swap_axes=False, dendrogram=True, show=False)
-            elif self.ui.comboBox.currentText() == 'Matrix plot':
+            elif self.ui.comboBoxFigType.currentText() == 'Matrix plot':
                 sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, cmap='Blues', standard_scale='var', colorbar_title='column scaled\nexpression', show=False)
-            elif self.ui.comboBox.currentText() == 'Heatmap':
+            elif self.ui.comboBoxFigType.currentText() == 'Heatmap':
                 sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby=group, cmap='viridis', dendrogram=True, show=False)
-            elif self.ui.comboBox.currentText() == 'Correlation':
+            elif self.ui.comboBoxFigType.currentText() == 'Correlation':
                 sc.pl.correlation_matrix(self.scRNAobj, group, show=False)
-            elif self.ui.comboBox.currentText() == 'Tracks plot':
+            elif self.ui.comboBoxFigType.currentText() == 'Tracks plot':
                 sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby=group, dendrogram=True, show=False)
-            elif self.ui.comboBox.currentText() == 'Violin Plot':
+            elif self.ui.comboBoxFigType.currentText() == 'Violin Plot':
                 sc.pl.violin(self.scRNAobj, features_list, groupby=group, show=False)
             else:
                 return
             plt.savefig(fig_path, bbox_inches="tight")
 
         img = QImageReader(fig_path)
-        scale = 1700 / img.size().width()
-        height = int(img.size().height() * scale)
-        if height > 800:
-            img.setScaledSize(QSize(int(img.size().width() * 800 / img.size().height()), 800))
-        else:
-            img.setScaledSize(QSize(1700, height))
+        #scale = 1700 / img.size().width()
+        #height = int(img.size().height() * scale)
+        #if height > 800:
+       #     img.setScaledSize(QSize(int(img.size().width() * 800 / img.size().height()), 800))
+       # else:
+       #     img.setScaledSize(QSize(1700, height))
         img = img.read()
         pixmap = QPixmap(img)
         self.ui.image_label.setPixmap(pixmap)
-
+        self.figPath = fig_path
+        self.ui.pushButtonSave.setEnabled(True)
 
 class MarkRecordsDialog(QtWidgets.QDialog):
     BatchSignal = pyqtSignal(str, str)
