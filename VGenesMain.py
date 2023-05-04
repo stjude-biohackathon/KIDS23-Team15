@@ -19,9 +19,10 @@ from PyQt5.QtCore import pyqtSlot, QTimer, Qt, QSortFilterProxyModel, pyqtSignal
 from PyQt5 import QtWidgets
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtGui import QTextCursor, QFont, QPixmap, QTextCharFormat, QBrush, QColor, QTextCursor, QCursor, QIcon, QPalette
-from PyQt5.QtWidgets import QApplication, QTableView, QGridLayout, QTableWidgetItem, QCheckBox, QAbstractItemView, QLabel, QLineEdit, QComboBox, QCompleter, QListWidget, QHeaderView
+from PyQt5.QtWidgets import QApplication, QTableView, QGridLayout, QTableWidgetItem, QCheckBox, QAbstractItemView, QLabel, QLineEdit, QComboBox, QCompleter, QListWidget, QHeaderView, QGraphicsScene
 from PyQt5.QtSql import QSqlQuery, QSqlQueryModel
 from PyQt5.QtChart import QChart, QChartView, QScatterSeries, QLogValueAxis, QValueAxis
+from PyQt5.Qt import QSize, QImageReader
 from operator import itemgetter
 from PyQt5.QtWebEngine import *
 from PyQt5.QtWebEngineWidgets import *
@@ -75,6 +76,8 @@ from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
 #from Bio.Align import substitution_matrices
 
+import scanpy as sc
+
 global OldName
 global UpdateSpecific
 UpdateSpecific = True
@@ -120,6 +123,7 @@ from ui_HistGramdialog import Ui_HistGramDialog
 from ui_BeesWarmPlotdialog import Ui_BeesWarmPlotDialog
 from ui_HeatmapViewerdialog import Ui_HeatmapViewerDialog
 from VGenesProgressBar import ui_ProgressBar
+from ui_scRNApage import Ui_Dialog
 # from VGenesPYQTSqL import EditableSqlModel, initializeModel , createConnection
 
 global VGenesTextWindows
@@ -1537,6 +1541,116 @@ class AdvanceSelectioDialog(QtWidgets.QDialog):
         
         # send result out
         self.BatchSignal.emit(Selected_names)
+
+class scRNAseqDialog(QtWidgets.QDialog):
+
+    BatchSignal = pyqtSignal(str, str)
+
+    def __init__(self):
+        super(scRNAseqDialog, self).__init__()
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+
+        #self.ui.figure = plt.figure()
+        #self.ui.F = FigureCanvas(self.ui.figure)
+        #self.ui.gridLayout_2.addWidget(self.ui.F, 0, 1)
+        #self.ui.F.setVisible(True)
+
+        self.scRNobj = ''
+
+        self.ui.buttonBox.clicked.connect(self.accept)
+        self.ui.pushButton.clicked.connect(self.loadfile)
+        self.ui.pushButton_2.clicked.connect(self.drawFig)
+
+        if system() == 'Windows':
+            # set style for windows
+            self.setStyleSheet("QLabel{font-size:18px;}"
+                               "QTextEdit{font-size:18px;}"
+                               "QComboBox{font-size:18px;}"
+                               "QPushButton{font-size:18px;}"
+                               "QTabWidget{font-size:18px;}"
+                               "QCommandLinkButton{font-size:18px;}"
+                               "QRadioButton{font-size:18px;}"
+                               "QPlainTextEdit{font-size:18px;}"
+                               "QCheckBox{font-size:18px;}"
+                               "QTableWidget{font-size:18px;}"
+                               "QToolBar{font-size:18px;}"
+                               "QMenuBar{font-size:18px;}"
+                               "QMenu{font-size:18px;}"
+                               "QAction{font-size:18px;}"
+                               "QMainWindow{font-size:18px;}"
+                               "QLineEdit{font-size:18px;}"
+                               "QTreeWidget{font-size:18px;}"
+                               "QSpinBox{font-size:18px;}")
+
+    def loadfile(self):
+        files, filetype = QtWidgets.QFileDialog.getOpenFileNames(self, "getOpenFileNames", "~/Documents",
+                                                                 "All Files (*)")
+        if len(files) == 0:
+            return
+        else:
+            if os.path.exists(files[0]):
+                self.ui.lineEdit.setText(files[0])
+                self.scRNAobj = sc.datasets.pbmc68k_reduced()
+                sc.tl.leiden(self.scRNAobj, key_added='clusters', resolution=0.5)
+                print(self.scRNAobj.var)
+
+    def drawFig(self):
+        global scRNobj
+        sc.set_figure_params(dpi=300, color_map='viridis_r')
+        sc.settings.verbosity = 1
+
+        print(self.scRNAobj.var)
+
+        features = self.ui.lineEdit_2.text()
+        features_list = features.split(',')
+        group = self.ui.lineEdit_3.text()
+
+        time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
+        fig_path = os.path.join(temp_folder, time_stamp + '.png')
+        marker_genes_list = ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']
+        marker_genes_dict = {
+            'B-cell': ['CD79A', 'MS4A1'],
+            'Dendritic': ['FCER1A', 'CST3'],
+            'Monocytes': ['FCGR3A'],
+            'NK': ['GNLY', 'NKG7'],
+            'Other': ['IGLL1'],
+            'Plasma': ['IGJ'],
+            'T-cell': ['CD3D'],
+        }
+
+        with plt.rc_context({'figure.figsize': (4, 4)}):
+            if self.ui.comboBox.currentText() == 'UMAP':
+                sc.pl.umap(self.scRNAobj, color=['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A', 'n_counts', 'bulk_labels'], s=50, frameon=False, vmax='p99', show=False)
+            elif self.ui.comboBox.currentText() == 'Dot plot':
+                sc.pl.dotplot(self.scRNAobj, marker_genes_dict, 'clusters', dendrogram=True, show=False)
+            elif self.ui.comboBox.currentText() == 'Stacked-violin Plot':
+                sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby='clusters', swap_axes=False, dendrogram=True, show=False)
+            elif self.ui.comboBox.currentText() == 'Matrix plot':
+                sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, 'clusters', dendrogram=True, cmap='Blues', standard_scale='var', colorbar_title='column scaled\nexpression', show=False)
+            elif self.ui.comboBox.currentText() == 'Heatmap':
+                sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby='clusters', cmap='viridis', dendrogram=True, show=False)
+            elif self.ui.comboBox.currentText() == 'Correlation':
+                sc.pl.correlation_matrix(self.scRNAobj, 'bulk_labels', show=False)
+            elif self.ui.comboBox.currentText() == 'Tracks plot':
+                sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby='clusters', dendrogram=True, show=False)
+            elif self.ui.comboBox.currentText() == 'Violin Plot':
+                sc.pl.violin(self.scRNAobj, marker_genes_list, groupby='clusters', show=False)
+            else:
+                return
+            plt.savefig(fig_path, bbox_inches="tight")
+
+        img = QImageReader(fig_path)
+        scale = 1700 / img.size().width()
+        height = int(img.size().height() * scale)
+        if height > 800:
+            img.setScaledSize(QSize(int(img.size().width() * 800 / img.size().height()), 800))
+        else:
+            img.setScaledSize(QSize(1700, height))
+        img = img.read()
+        pixmap = QPixmap(img)
+        self.ui.image_label.setPixmap(pixmap)
+
 
 class MarkRecordsDialog(QtWidgets.QDialog):
     BatchSignal = pyqtSignal(str, str)
@@ -14247,8 +14361,12 @@ class VGenesForm(QtWidgets.QMainWindow):
     @pyqtSlot()
     def on_actionTestMutMap_triggered(self):
         # test something
-        import pyqtgraph.examples
-        pyqtgraph.examples.run()
+        self.myscRNAseqDialog = scRNAseqDialog()
+        self.myscRNAseqDialog.show()
+
+        
+        
+        
         return
         # fetch data
         cur_name = self.ui.txtName.toPlainText()
