@@ -333,88 +333,101 @@
          <property name="title">
           <string>Setting</string>
          </property>
-         <widget class="QLabel" name="label_2">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>40</y>
-            <width>101</width>
-            <height>16</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Group cells by:</string>
-          </property>
-         </widget>
-         <widget class="QComboBox" name="comboBoxDE">
-          <property name="geometry">
-           <rect>
-            <x>130</x>
-            <y>40</y>
-            <width>161</width>
-            <height>26</height>
-           </rect>
-          </property>
-         </widget>
-         <widget class="QLabel" name="label_3">
-          <property name="geometry">
-           <rect>
-            <x>20</x>
-            <y>80</y>
-            <width>60</width>
-            <height>16</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Group 1</string>
-          </property>
-         </widget>
-         <widget class="QLabel" name="label_8">
-          <property name="geometry">
-           <rect>
-            <x>20</x>
-            <y>110</y>
-            <width>60</width>
-            <height>16</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Group 2</string>
-          </property>
-         </widget>
-         <widget class="QLineEdit" name="lineEditG1">
-          <property name="geometry">
-           <rect>
-            <x>130</x>
-            <y>70</y>
-            <width>151</width>
-            <height>21</height>
-           </rect>
-          </property>
-         </widget>
-         <widget class="QLineEdit" name="lineEditG2">
-          <property name="geometry">
-           <rect>
-            <x>130</x>
-            <y>110</y>
-            <width>151</width>
-            <height>21</height>
-           </rect>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="pushButtonRunDE">
-          <property name="geometry">
-           <rect>
-            <x>20</x>
-            <y>800</y>
-            <width>113</width>
-            <height>32</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Run</string>
-          </property>
-         </widget>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="3" column="0" colspan="2">
+           <widget class="QLabel" name="label_12">
+            <property name="text">
+             <string>Please specify the groups of cells you would like to compare: (If you only specify group 1, we will perform DE analysis on G1 VS all the rest)</string>
+            </property>
+            <property name="scaledContents">
+             <bool>false</bool>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Group cells by:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_8">
+            <property name="text">
+             <string>Group 2</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Group 1</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0" colspan="2">
+           <widget class="QPushButton" name="pushButtonRunDE">
+            <property name="text">
+             <string>Run</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="comboBoxDE">
+            <property name="minimumSize">
+             <size>
+              <width>170</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="label_info">
+            <property name="text">
+             <string>Please specify your group:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QComboBox" name="comboBoxG1"/>
+          </item>
+          <item row="5" column="1">
+           <widget class="QComboBox" name="comboBoxG2"/>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="8" column="0" colspan="2">
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </widget>
        </item>
        <item row="0" column="1">

@@ -1555,6 +1555,7 @@ class scRNAseqDialog(QtWidgets.QDialog):
         self.figPath = ''
         self.sign = False
         self.features = []
+        self.initial = True
         
         self.ui.pushButtonSave.setEnabled(False)
         self.ui.buttonBox.clicked.connect(self.accept)
@@ -1564,6 +1565,8 @@ class scRNAseqDialog(QtWidgets.QDialog):
         self.ui.listWidgetFeatureList.doubleClicked.connect(self.removeFeature)
         self.ui.pushButtonClear.clicked.connect(self.clearList)
         self.ui.pushButtonSave.clicked.connect(self.saveFig)
+        self.ui.comboBoxDE.currentIndexChanged.connect(self.updateGroup)
+        self.ui.pushButtonRunDE.clicked.connect(self.runDE)
         
         if system() == 'Windows':
             # set style for windows
@@ -1585,7 +1588,69 @@ class scRNAseqDialog(QtWidgets.QDialog):
                                "QLineEdit{font-size:18px;}"
                                "QTreeWidget{font-size:18px;}"
                                "QSpinBox{font-size:18px;}")
-    
+
+    def runDE(self):
+        group_text = self.ui.comboBoxDE.currentText()
+        if self.ui.comboBoxG1.currentText() == self.ui.comboBoxG2.currentText():
+            Msg = 'Please specify different groups!'
+            QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+            return
+        
+        if self.ui.comboBoxG2.currentText() == '':
+            g2 = 'rest'
+        else:
+            g2 = self.ui.comboBoxG2.currentText()
+        g1 = self.ui.comboBoxG1.currentText()
+        
+        self.scRNAobj.uns['log1p']['base'] = 10
+        sc.tl.rank_genes_groups(self.scRNAobj, group_text, groups=[g1], reference=g2, method='wilcoxon')
+
+        sc.pl.rank_genes_groups(self.scRNAobj, groups=[g1], n_genes=25, show=False)
+        time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
+        fig_path = os.path.join(temp_folder, time_stamp + '.png')
+        plt.savefig(fig_path, bbox_inches="tight")
+        img = QImageReader(fig_path)
+        img = img.read()
+        pixmap = QPixmap(img)
+        self.ui.label_9.setPixmap(pixmap)
+
+        # prepare table
+        a = self.scRNAobj.uns['rank_genes_groups']
+        names_list = [el[0] for el in list(a['names'])]
+        score_list = [el[0] for el in list(a['scores'])]
+        pval_list = [el[0] for el in list(a['pvals'])]
+        padj_list = [el[0] for el in list(a['pvals_adj'])]
+        lofFC_list = [el[0] for el in list(a['logfoldchanges'])]
+
+        df = pd.DataFrame({
+            'Gene':names_list,
+            'Score':score_list,
+            'Pvalue':pval_list,
+            'Pvalue-adj':padj_list,
+            'Log2FC':lofFC_list
+        })
+
+
+    def updateGroup(self):
+        group_text = self.ui.comboBoxDE.currentText()
+        if self.scRNAobj.obs[group_text].dtype == "category":
+            value_list = self.scRNAobj.obs[group_text].cat.categories
+            self.ui.comboBoxG1.setEnabled(True)
+            self.ui.comboBoxG2.setEnabled(True)
+            self.ui.comboBoxG1.addItems([''] + list(value_list))
+            self.ui.comboBoxG2.addItems([''] + list(value_list))
+        else:
+            self.ui.comboBoxG1.clear()
+            self.ui.comboBoxG2.clear()
+            self.ui.comboBoxG1.setEnabled(False)
+            self.ui.comboBoxG2.setEnabled(False)
+            if self.initial == True:
+                self.initial = False
+            else:
+                Msg = 'This field is not Categorical data! Please try other fields!'
+                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                return
+
     def clearList(self):
         self.features.clear()
         self.ui.listWidgetFeatureList.clear()
@@ -1618,6 +1683,7 @@ class scRNAseqDialog(QtWidgets.QDialog):
                 
                 self.ui.comboBoxCellGroup.clear()
                 self.ui.comboBoxCellGroup.addItems(self.scRNAobj.obs.columns)
+                self.ui.comboBoxDE.addItems(self.scRNAobj.obs.columns)
                 self.initLineedit(self.ui.lineEditAutoComplete, self.scRNAobj.var.index)
 
     def initLineedit(self, lineEdit, items_list):
@@ -1667,16 +1733,6 @@ class scRNAseqDialog(QtWidgets.QDialog):
 
         time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
         fig_path = os.path.join(temp_folder, time_stamp + '.png')
-        #marker_genes_list = ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']
-        #marker_genes_dict = {
-        #    'B-cell': ['CD79A', 'MS4A1'],
-        #    'Dendritic': ['FCER1A', 'CST3'],
-        #    'Monocytes': ['FCGR3A'],
-        #    'NK': ['GNLY', 'NKG7'],
-        #    'Other': ['IGLL1'],
-        #    'Plasma': ['IGJ'],
-        #    'T-cell': ['CD3D'],
-        #}
 
         with plt.rc_context({'figure.figsize': (4, 4)}):
             if self.ui.comboBoxFigType.currentText() == 'UMAP':
