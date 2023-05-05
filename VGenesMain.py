@@ -15,8 +15,8 @@ import csv
 #import asyncio
 #from aiohttp import TCPConnector, ClientSession
 
-from PyQt5.QtCore import pyqtSlot, QTimer, Qt, QSortFilterProxyModel, pyqtSignal, QUrl, QObject, QThread, QEventLoop, QThreadPool, QRunnable, QEvent, QCoreApplication
-from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtSlot, QTimer, Qt, QSortFilterProxyModel, pyqtSignal, QUrl, QObject, QThread, QEventLoop, QThreadPool, QRunnable, QEvent, QCoreApplication, QAbstractTableModel
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtGui import QTextCursor, QFont, QPixmap, QTextCharFormat, QBrush, QColor, QTextCursor, QCursor, QIcon, QPalette
 from PyQt5.QtWidgets import QApplication, QTableView, QGridLayout, QTableWidgetItem, QCheckBox, QAbstractItemView, QLabel, QLineEdit, QComboBox, QCompleter, QListWidget, QHeaderView, QGraphicsScene
@@ -1542,6 +1542,68 @@ class AdvanceSelectioDialog(QtWidgets.QDialog):
         # send result out
         self.BatchSignal.emit(Selected_names)
 
+class DataFrameModel(QtCore.QAbstractTableModel):
+    DtypeRole = QtCore.Qt.UserRole + 1000
+    ValueRole = QtCore.Qt.UserRole + 1001
+
+    def __init__(self, df=pd.DataFrame(), parent=None):
+        super(DataFrameModel, self).__init__(parent)
+        self._dataframe = df
+
+    def setDataFrame(self, dataframe):
+        self.beginResetModel()
+        self._dataframe = dataframe.copy()
+        self.endResetModel()
+
+    def dataFrame(self):
+        return self._dataframe
+
+    dataFrame = QtCore.pyqtProperty(pd.DataFrame, fget=dataFrame, fset=setDataFrame)
+
+    @QtCore.pyqtSlot(int, QtCore.Qt.Orientation, result=str)
+    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.DisplayRole:
+            if orientation == QtCore.Qt.Horizontal:
+                return self._dataframe.columns[section]
+            else:
+                return str(self._dataframe.index[section])
+        return QtCore.QVariant()
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        if parent.isValid():
+            return 0
+        return len(self._dataframe.index)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        if parent.isValid():
+            return 0
+        return self._dataframe.columns.size
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount() \
+            and 0 <= index.column() < self.columnCount()):
+            return QtCore.QVariant()
+        row = self._dataframe.index[index.row()]
+        col = self._dataframe.columns[index.column()]
+        dt = self._dataframe[col].dtype
+
+        val = self._dataframe.iloc[row][col]
+        if role == QtCore.Qt.DisplayRole:
+            return str(val)
+        elif role == DataFrameModel.ValueRole:
+            return val
+        if role == DataFrameModel.DtypeRole:
+            return dt
+        return QtCore.QVariant()
+
+    def roleNames(self):
+        roles = {
+            QtCore.Qt.DisplayRole: b'display',
+            DataFrameModel.DtypeRole: b'dtype',
+            DataFrameModel.ValueRole: b'value'
+        }
+        return roles
+
 class scRNAseqDialog(QtWidgets.QDialog):
 
     BatchSignal = pyqtSignal(str, str)
@@ -1630,6 +1692,8 @@ class scRNAseqDialog(QtWidgets.QDialog):
             'Log2FC':lofFC_list
         })
 
+        model = DataFrameModel(df)
+        self.ui.tableView.setModel(model)
 
     def updateGroup(self):
         group_text = self.ui.comboBoxDE.currentText()
@@ -1685,6 +1749,24 @@ class scRNAseqDialog(QtWidgets.QDialog):
                 self.ui.comboBoxCellGroup.addItems(self.scRNAobj.obs.columns)
                 self.ui.comboBoxDE.addItems(self.scRNAobj.obs.columns)
                 self.initLineedit(self.ui.lineEditAutoComplete, self.scRNAobj.var.index)
+                
+                # write basic information to text broswer
+                #msg = 'AnnData object with n_obs × n_vars = ' + str(self.scRNAobj.n_obs) + ' × ' + str(self.scRNAobj.n_vars) + '\n'
+                #msg += 'obs: ' + ','.join(self.scRNAobj.obs.columns) + '\n'
+                #msg += 'var: ' + ','.join(self.scRNAobj.var.columns) + '\n'
+                #msg += 'uns: ' + ','.join(self.scRNAobj.uns.keys()) + '\n'
+                
+                #self.ui.textBrowser.setText(msg)
+
+                self.ui.textBrowser.setText(
+                    "AnnData object with n_obs x n_vars = " + str(self.scRNAobj.obs.shape[0]) + " x " + str(
+                        self.scRNAobj.var.shape[0]) + "\n\n"
+                    + "\tobs: " + ', '.join(self.scRNAobj.obs.columns) + "\n\n"
+                    + "\tvar: " + ', '.join(self.scRNAobj.var.columns) + "\n\n"
+                    + "\tuns: " + ', '.join(self.scRNAobj.uns.keys()) + "\n\n"
+                    + "\tobsm: " + ', '.join(self.scRNAobj.obsm) + "\n\n"
+                    + "\tvarm: " + ', '.join(self.scRNAobj.varm) + "\n\n"
+                    + "\tobsp: " + ', '.join(self.scRNAobj.obsp))
 
     def initLineedit(self, lineEdit, items_list):
         # add auto complete
@@ -1727,6 +1809,14 @@ class scRNAseqDialog(QtWidgets.QDialog):
 
         features_list = [str(self.ui.listWidgetFeatureList.item(i).text()) for i in range(self.ui.listWidgetFeatureList.count())]
         group = self.ui.comboBoxCellGroup.currentText()
+
+        if self.ui.comboBoxFigType.currentText() != 'UMAP':
+            if self.scRNAobj.obs[group].dtype != "category":
+                Msg = 'This field is not Categorical data! Please try other fields!'
+                QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                return
+
+        pandas_to_str = pd.DataFrame(self.scRNAobj.uns['rank_genes_groups']['names']).head(3).to_string(col_space =20,justify = "justify")
         marker_genes_dict = {}
         for feature in features_list:
             marker_genes_dict[feature] = [feature]
@@ -1747,22 +1837,25 @@ class scRNAseqDialog(QtWidgets.QDialog):
                     sc.pl.dotplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, show=False)
                 else:
                     sc.pl.rank_genes_groups_dotplot(self.scRNAobj, n_genes=3, show=False)
+                    self.ui.textBrowser_2.setText(pandas_to_str)
             elif self.ui.comboBoxFigType.currentText() == 'Stacked-violin Plot':
                 if self.ui.listWidgetFeatureList.count() > 0:
                     sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby=group, swap_axes=False, dendrogram=True, show=False)
                 else:
                     sc.pl.rank_genes_groups_stacked_violin(self.scRNAobj, n_genes=3, cmap='viridis_r', show=False)
+                    self.ui.textBrowser_2.setText(pandas_to_str)
             elif self.ui.comboBoxFigType.currentText() == 'Matrix plot':
                 if self.ui.listWidgetFeatureList.count() > 0:
                     sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, cmap='Blues', colorbar_title='column scaled\nexpression', show=False)
                 else:
-                    sc.pl.rank_genes_groups_matrixplot(self.scRNAobj, n_genes=3, use_raw=True, vmin=-3, vmax=3, cmap='bwr', show=False)
+                    sc.pl.rank_genes_groups_matrixplot(self.scRNAobj, n_genes=3, use_raw=True, cmap='bwr', show=False)
+                    self.ui.textBrowser_2.setText(pandas_to_str)
             elif self.ui.comboBoxFigType.currentText() == 'Heatmap':
                 if self.ui.listWidgetFeatureList.count() > 0:
                     sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby=group, cmap='viridis', dendrogram=True, show=False)
                 else:
-                    sc.pl.rank_genes_groups_heatmap(self.scRNAobj, n_genes=3, use_raw=True, swap_axes=True, vmin=-3, vmax=3,
-                                                cmap='bwr', show=False);
+                    sc.pl.rank_genes_groups_heatmap(self.scRNAobj, n_genes=3, use_raw=True, swap_axes=True, cmap='bwr', show=False);
+                    self.ui.textBrowser_2.setText(pandas_to_str)
             elif self.ui.comboBoxFigType.currentText() == 'Correlation':
                 sc.pl.correlation_matrix(self.scRNAobj, group, show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Tracks plot':
@@ -1770,6 +1863,7 @@ class scRNAseqDialog(QtWidgets.QDialog):
                     sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby=group, dendrogram=True, show=False)
                 else:
                     sc.pl.rank_genes_groups_tracksplot(self.scRNAobj, n_genes=3, show=False)
+                    self.ui.textBrowser_2.setText(pandas_to_str)
             elif self.ui.comboBoxFigType.currentText() == 'Violin Plot':
                 if len(features_list) == 0:
                     Msg = 'Please provide some gene names for Violin plots!'
