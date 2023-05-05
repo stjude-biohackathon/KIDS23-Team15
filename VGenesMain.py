@@ -1563,7 +1563,8 @@ class scRNAseqDialog(QtWidgets.QDialog):
         self.ui.lineEditAutoComplete.textChanged.connect(self.addToList)
         self.ui.listWidgetFeatureList.doubleClicked.connect(self.removeFeature)
         self.ui.pushButtonClear.clicked.connect(self.clearList)
-
+        self.ui.pushButtonSave.clicked.connect(self.saveFig)
+        
         if system() == 'Windows':
             # set style for windows
             self.setStyleSheet("QLabel{font-size:18px;}"
@@ -1589,10 +1590,21 @@ class scRNAseqDialog(QtWidgets.QDialog):
         self.features.clear()
         self.ui.listWidgetFeatureList.clear()
     
+    def saveFig(self):
+        options = QtWidgets.QFileDialog.Options()
+        newFILE, _ = QtWidgets.QFileDialog.getSaveFileName(self,
+                                                         "New fig",
+                                                         "New fig",
+                                                         "PNG (*.png);;All Files (*)",
+                                                         options=options)
+        if newFILE != 'none' and newFILE != '':
+            shutil.copyfile(self.figPath, newFILE)
+            QMessageBox.information(self, 'Information', 'Figure saved!', QMessageBox.Ok, QMessageBox.Ok)
+        
     def loadfile(self):
         #WE DO NOT WANT ALL FILES, WE ONLY WANT TO READ IN AnnData FILES
         files, filetype = QtWidgets.QFileDialog.getOpenFileNames(self, "getOpenFileNames", "~/Documents",
-                                                                 "AnnData（.h5ad）；All Files (*)")
+                                                                 "AnnData(*.h5ad);;All Files (*)")
         if len(files) == 0:
             return
         else:
@@ -1601,6 +1613,9 @@ class scRNAseqDialog(QtWidgets.QDialog):
                 # self.scRNAobj = sc.datasets.pbmc68k_reduced()
                 # sc.tl.leiden(self.scRNAobj, key_added='clusters', resolution=0.5)
                 self.scRNAobj = sc.read_h5ad(files[0])
+                
+                print(self.scRNAobj)
+                
                 self.ui.comboBoxCellGroup.clear()
                 self.ui.comboBoxCellGroup.addItems(self.scRNAobj.obs.columns)
                 self.initLineedit(self.ui.lineEditAutoComplete, self.scRNAobj.var.index)
@@ -1646,48 +1661,77 @@ class scRNAseqDialog(QtWidgets.QDialog):
 
         features_list = [str(self.ui.listWidgetFeatureList.item(i).text()) for i in range(self.ui.listWidgetFeatureList.count())]
         group = self.ui.comboBoxCellGroup.currentText()
+        marker_genes_dict = {}
+        for feature in features_list:
+            marker_genes_dict[feature] = [feature]
 
         time_stamp = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime())
         fig_path = os.path.join(temp_folder, time_stamp + '.png')
-        marker_genes_list = ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']
-        marker_genes_dict = {
-            'B-cell': ['CD79A', 'MS4A1'],
-            'Dendritic': ['FCER1A', 'CST3'],
-            'Monocytes': ['FCGR3A'],
-            'NK': ['GNLY', 'NKG7'],
-            'Other': ['IGLL1'],
-            'Plasma': ['IGJ'],
-            'T-cell': ['CD3D'],
-        }
+        #marker_genes_list = ['CD79A', 'MS4A1', 'IGJ', 'CD3D', 'FCER1A', 'FCGR3A']
+        #marker_genes_dict = {
+        #    'B-cell': ['CD79A', 'MS4A1'],
+        #    'Dendritic': ['FCER1A', 'CST3'],
+        #    'Monocytes': ['FCGR3A'],
+        #    'NK': ['GNLY', 'NKG7'],
+        #    'Other': ['IGLL1'],
+        #    'Plasma': ['IGJ'],
+        #    'T-cell': ['CD3D'],
+        #}
 
         with plt.rc_context({'figure.figsize': (4, 4)}):
             if self.ui.comboBoxFigType.currentText() == 'UMAP':
-                sc.pl.umap(self.scRNAobj, color=features_list, s=50, frameon=False, vmax='p99', show=False)
+                if len(features_list) == 0:
+                    Msg = 'Please provide some gene names for UMAP plots!'
+                    QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                    return
+                ncol = math.floor(math.sqrt(len(features_list))) + 1
+                sc.pl.umap(self.scRNAobj, color=features_list, s=50,ncols = ncol, frameon=False, vmax='p99', show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Dot plot':
-                sc.pl.dotplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, show=False)
+                if self.ui.listWidgetFeatureList.count() > 0:
+                    sc.pl.dotplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, show=False)
+                else:
+                    sc.pl.rank_genes_groups_dotplot(self.scRNAobj, n_genes=3, show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Stacked-violin Plot':
-                sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby=group, swap_axes=False, dendrogram=True, show=False)
+                if self.ui.listWidgetFeatureList.count() > 0:
+                    sc.pl.stacked_violin(self.scRNAobj, marker_genes_dict, groupby=group, swap_axes=False, dendrogram=True, show=False)
+                else:
+                    sc.pl.rank_genes_groups_stacked_violin(self.scRNAobj, n_genes=3, cmap='viridis_r', show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Matrix plot':
-                sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, cmap='Blues', standard_scale='var', colorbar_title='column scaled\nexpression', show=False)
+                if self.ui.listWidgetFeatureList.count() > 0:
+                    sc.pl.matrixplot(self.scRNAobj, marker_genes_dict, group, dendrogram=True, cmap='Blues', colorbar_title='column scaled\nexpression', show=False)
+                else:
+                    sc.pl.rank_genes_groups_matrixplot(self.scRNAobj, n_genes=3, use_raw=True, vmin=-3, vmax=3, cmap='bwr', show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Heatmap':
-                sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby=group, cmap='viridis', dendrogram=True, show=False)
+                if self.ui.listWidgetFeatureList.count() > 0:
+                    sc.pl.heatmap(self.scRNAobj, marker_genes_dict, groupby=group, cmap='viridis', dendrogram=True, show=False)
+                else:
+                    sc.pl.rank_genes_groups_heatmap(self.scRNAobj, n_genes=3, use_raw=True, swap_axes=True, vmin=-3, vmax=3,
+                                                cmap='bwr', show=False);
             elif self.ui.comboBoxFigType.currentText() == 'Correlation':
                 sc.pl.correlation_matrix(self.scRNAobj, group, show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Tracks plot':
-                sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby=group, dendrogram=True, show=False)
+                if self.ui.listWidgetFeatureList.count() > 0:
+                    sc.pl.tracksplot(self.scRNAobj, marker_genes_dict, groupby=group, dendrogram=True, show=False)
+                else:
+                    sc.pl.rank_genes_groups_tracksplot(self.scRNAobj, n_genes=3, show=False)
             elif self.ui.comboBoxFigType.currentText() == 'Violin Plot':
-                sc.pl.violin(self.scRNAobj, features_list, groupby=group, show=False)
+                if len(features_list) == 0:
+                    Msg = 'Please provide some gene names for Violin plots!'
+                    QMessageBox.warning(self, 'Warning', Msg, QMessageBox.Ok, QMessageBox.Ok)
+                    return
+                ncol = math.floor(math.sqrt(len(features_list))) + 1
+                sc.pl.violin(self.scRNAobj, features_list, groupby=group, ncols = ncol, show=False)
             else:
                 return
             plt.savefig(fig_path, bbox_inches="tight")
 
         img = QImageReader(fig_path)
-        #scale = 1700 / img.size().width()
-        #height = int(img.size().height() * scale)
-        #if height > 800:
-       #     img.setScaledSize(QSize(int(img.size().width() * 800 / img.size().height()), 800))
-       # else:
-       #     img.setScaledSize(QSize(1700, height))
+        scale = 1340 / img.size().width()
+        height = int(img.size().height() * scale)
+        if height > 833:
+            img.setScaledSize(QSize(int(img.size().width() * 833 / img.size().height()), 833))
+        else:
+            img.setScaledSize(QSize(1340, height))
         img = img.read()
         pixmap = QPixmap(img)
         self.ui.image_label.setPixmap(pixmap)

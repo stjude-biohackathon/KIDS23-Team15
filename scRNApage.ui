@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1241</width>
+    <width>1728</width>
     <height>998</height>
    </rect>
   </property>
@@ -117,6 +117,12 @@
        </item>
        <item row="0" column="0">
         <widget class="QGroupBox" name="groupBox">
+         <property name="maximumSize">
+          <size>
+           <width>300</width>
+           <height>16777215</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>18</pointsize>
@@ -165,6 +171,11 @@
             </item>
             <item>
              <property name="text">
+              <string>Violin Plot</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
               <string>Dot plot</string>
              </property>
             </item>
@@ -185,17 +196,12 @@
             </item>
             <item>
              <property name="text">
-              <string>Correlation</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
               <string>Tracks plot</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Violin Plot</string>
+              <string>Correlation</string>
              </property>
             </item>
            </widget>
@@ -250,6 +256,136 @@
       <attribute name="title">
        <string>Analyze</string>
       </attribute>
+      <layout class="QGridLayout" name="gridLayout_4">
+       <item row="0" column="0">
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>300</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>18</pointsize>
+          </font>
+         </property>
+         <property name="title">
+          <string>Setting</string>
+         </property>
+         <widget class="QLabel" name="label_2">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>40</y>
+            <width>101</width>
+            <height>16</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Group cells by:</string>
+          </property>
+         </widget>
+         <widget class="QComboBox" name="comboBoxDE">
+          <property name="geometry">
+           <rect>
+            <x>130</x>
+            <y>40</y>
+            <width>161</width>
+            <height>26</height>
+           </rect>
+          </property>
+         </widget>
+         <widget class="QLabel" name="label_3">
+          <property name="geometry">
+           <rect>
+            <x>20</x>
+            <y>80</y>
+            <width>60</width>
+            <height>16</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Group 1</string>
+          </property>
+         </widget>
+         <widget class="QLabel" name="label_8">
+          <property name="geometry">
+           <rect>
+            <x>20</x>
+            <y>110</y>
+            <width>60</width>
+            <height>16</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Group 2</string>
+          </property>
+         </widget>
+         <widget class="QLineEdit" name="lineEditG1">
+          <property name="geometry">
+           <rect>
+            <x>130</x>
+            <y>70</y>
+            <width>151</width>
+            <height>21</height>
+           </rect>
+          </property>
+         </widget>
+         <widget class="QLineEdit" name="lineEditG2">
+          <property name="geometry">
+           <rect>
+            <x>130</x>
+            <y>110</y>
+            <width>151</width>
+            <height>21</height>
+           </rect>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="pushButtonRunDE">
+          <property name="geometry">
+           <rect>
+            <x>20</x>
+            <y>800</y>
+            <width>113</width>
+            <height>32</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Run</string>
+          </property>
+         </widget>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_9">
+         <property name="minimumSize">
+          <size>
+           <width>600</width>
+           <height>600</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>600</width>
+           <height>600</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QTableWidget" name="tableWidget"/>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>
